@@ -10,7 +10,5 @@ Użyta baza danych to Lokalna baza danych SQL Server Express.
 ## Uruchomienie projektu
 Parametr do połączenia z bazą danych to ConnectionStrings:DefaultConnection z pliku **appsettings.json**.
 Po pobraniu repozytorium należy wykonać następujące komendy:
- 1. Install-Package Microsoft.EntityFrameworkCore.SqlServer
- 2. Install-Package Microsoft.EntityFrameworkCore.Tools
- 3. Add-Migration Initial
- 4. Update-Database
+
+Update-Database
