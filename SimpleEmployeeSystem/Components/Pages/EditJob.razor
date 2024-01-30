@@ -1,0 +1,166 @@
+﻿@page "/edit-job"
+@page "/edit-job/{Id:int}"
+@inject DataContext Context
+
+@if (Id is null)
+{
+	<PageTitle>Add a New job</PageTitle>
+	<h3>Add a New job</h3>
+}
+else
+{
+	<PageTitle>Edit "@CurrentJob.Name"</PageTitle>
+	<h3>Edit "@CurrentJob.Name"</h3>
+}
+
+	<EditForm Enhance Model="CurrentJob" OnSubmit="HandleSubmit" FormName="JobForm" class="edit-form">
+		<div>
+			<label for="name">Name</label>
+			<InputText id="name" @bind-Value="CurrentJob.Name" class="form-control" />
+		</div>
+		<div>
+			<label for="description">Description</label>
+			<InputTextArea id="description" @bind-Value="CurrentJob.Description" class="form-control" />
+		</div>
+		<div>
+			<label for="jobStatus">Job Status</label>
+			<InputSelect id="jobStatus" @bind-Value="CurrentJob.JobStatus" class="form-control">
+				<option value="">-- Select Status --</option>
+				@foreach (var status in statuses)
+				{
+					<option value="@status">@status</option>
+				}
+		    </InputSelect>
+		</div>
+
+		<div>
+			<label for="employee">Employee</label>
+			<InputSelect id="employee" @bind-Value="CurrentJob.EmployeeId" class="form-control">
+				<option value="">-- Select Employee --</option>
+				@foreach (var employee in Employees)
+				{
+					<option value="@employee.Id">@employee.Name</option>
+				}
+			</InputSelect>
+		</div>
+
+		<button type="submit" class="btn btn-primary save-btn">Save</button>
+	</EditForm>
+
+	@if (!string.IsNullOrEmpty(status))
+	{
+		<div class="alert alert-success mt-3" role="alert">
+			@status
+		</div>
+	}
+
+	@if (!string.IsNullOrEmpty(errorStatus))
+	{
+		<div class="alert alert-danger mt-3" role="alert">
+			@((MarkupString)errorStatus)
+		</div>
+	}
+
+@code {
+	[Parameter]
+	public int? Id { get; set; } = null;
+
+	[SupplyParameterFromForm]
+	public Job CurrentJob { get; set; } = new();
+	private List<Employee> Employees { get; set; } = new();
+
+	public List<string> statuses = new List<string> { "New", "In Progress", "Done" };
+
+	private string status = string.Empty;
+	private string errorStatus = string.Empty;
+
+	protected override async Task OnParametersSetAsync()
+	{
+		Employees = await Context.Employees.ToListAsync();
+
+		if (Id is not null)
+		{
+			var job = await Context.Jobs.FindAsync(Id);
+			if (job is not null)
+			{
+				CurrentJob.Name ??= job.Name;
+				CurrentJob.Description ??= job.Description;
+				CurrentJob.JobStatus ??= job.JobStatus;
+				CurrentJob.EmployeeId = job.EmployeeId;
+				Console.WriteLine($"Loaded job status: {CurrentJob.JobStatus}");
+			}
+		}
+	}
+
+	async Task HandleSubmit()
+	{
+		errorStatus = string.Empty;
+
+		if (string.IsNullOrEmpty(CurrentJob.Name))
+		{
+			errorStatus += "Name field is required.<br/>";
+		}
+		if (string.IsNullOrEmpty(CurrentJob.Description))
+		{
+			errorStatus += "Description field is required.<br/>";
+		}
+		if (string.IsNullOrEmpty(CurrentJob.JobStatus))
+		{
+			errorStatus += "Job Status field is required.<br/>";
+		}
+		if (CurrentJob.EmployeeId <= 0)
+		{
+			errorStatus += "Employee field is required.<br/>";
+		}
+		if (!string.IsNullOrEmpty(errorStatus))
+		{
+			return;
+		}
+		if (Id is not null)
+		{
+			await UpdateJob();
+		}
+		else
+		{
+			await CreateJob();
+		}
+	}
+
+	async Task UpdateJob()
+	{
+		var dbJob = await Context.Jobs.FindAsync(Id);
+		if (dbJob is not null)
+		{
+			dbJob.Name = CurrentJob.Name;
+			dbJob.Description = CurrentJob.Description;
+			dbJob.JobStatus = CurrentJob.JobStatus;
+			dbJob.EmployeeId = CurrentJob.EmployeeId;
+
+			var result = await Context.SaveChangesAsync();
+
+			if (result == 1)
+			{
+				status = "Job updated successfully!";
+			}
+			else
+			{
+				status = "The values have not been changed.";
+			}
+		}
+	}
+
+	async Task CreateJob()
+	{
+		Context.Jobs.Add(CurrentJob);
+		var result = await Context.SaveChangesAsync();
+
+		if (result == 1)
+		{
+			status = "Job added successfully!";
+		}
+		else
+		{
+			status = "The values have not been changed.";
+		}
+	}
+}

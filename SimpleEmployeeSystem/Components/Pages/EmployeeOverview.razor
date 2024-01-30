@@ -1,0 +1,79 @@
+﻿@page "/employees"
+@inject DataContext Context
+@inject NavigationManager NavigationManager
+@attribute [StreamRendering]
+
+<PageTitle>Employees</PageTitle>
+<h3>Employees</h3>
+
+@if (employees.Count == 0)
+{
+	<p><em>Loading employees...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Job position</th>
+				<th>Hire date</th>
+				<th>Status</th>
+				<th></th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var employee in employees)
+			{
+				<tr>
+					<td>
+						<p>@employee.Name</p>
+					</td>
+					<td>@employee.JobPosition</td>
+					<td>@employee.HireDate</td>
+					<td>@employee.EmployeeStatus</td>
+					<td>
+						<a href="edit-employee/@employee.Id">
+							<div class="btn btn-success">Edit</div>
+						</a>
+					</td>
+					<td>
+						<form method="post" data-enhance
+							  @formname="@($"DeleteEmployeeForm{employee.Id}")"
+							  @onsubmit="() => DeleteEmployee(employee.Id)">
+							  <button class="btn btn-danger">
+								  Delete
+							  </button>
+							<AntiforgeryToken />
+						</form>
+					</td>
+				</tr>
+
+			}
+		</tbody>
+	</table>
+}
+
+<a href="/edit-employee">Add Employee</a>
+
+@code {
+	List<Employee> employees = new List<Employee>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		await Task.Delay(300);
+		employees = await Context.Employees.ToListAsync();
+	}
+
+	async Task DeleteEmployee(int id)
+	{
+		var dbEmployee = await Context.Employees.FindAsync(id);
+		if (dbEmployee is not null)
+		{
+			Context.Remove(dbEmployee);
+			await Context.SaveChangesAsync();
+			employees = await Context.Employees.ToListAsync();
+		}
+	}
+}

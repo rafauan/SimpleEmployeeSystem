@@ -1,0 +1,77 @@
+﻿@page "/jobs"
+@inject DataContext Context
+@inject NavigationManager NavigationManager
+@attribute [StreamRendering]
+
+<PageTitle>Jobs</PageTitle>
+<h3>Jobs</h3>
+
+@if (jobs.Count == 0)
+{
+	<p><em>Loading jobs...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Job position</th>
+				<th>Status</th>
+				<th>Employee</th>
+				<th></th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var job in jobs)
+			{
+				<tr>
+					<td>@job.Name</td>
+					<td>@job.Description</td>
+					<td>@job.JobStatus</td>
+					<td>@job.Employee?.Name</td>
+					<td>
+						<a href="edit-job/@job.Id">
+							<div class="btn btn-success">Edit</div>
+						</a>
+					</td>
+					<td>
+						<form method="post" data-enhance
+							  @formname="@($"DeleteJobForm{job.Id}")"
+							  @onsubmit="() => DeleteJob(job.Id)">
+							  <button class="btn btn-danger">
+							      Delete
+							  </button>
+							<AntiforgeryToken />
+						</form>
+					</td>
+				</tr>
+
+			}
+		</tbody>
+	</table>
+}
+
+<a href="/edit-job">Add Jobs</a>
+
+@code {
+	List<Job> jobs = new List<Job>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		await Task.Delay(300);
+		jobs = await Context.Jobs.Include(j => j.Employee).ToListAsync();
+	}
+
+	async Task DeleteJob(int id)
+	{
+		var dbJob = await Context.Jobs.FindAsync(id);
+		if (dbJob is not null)
+		{
+			Context.Remove(dbJob);
+			await Context.SaveChangesAsync();
+			jobs = await Context.Jobs.Include(j => j.Employee).ToListAsync();
+		}
+	}
+}
